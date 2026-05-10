@@ -1,7 +1,10 @@
-name: Build Rubeus
+name: Build and Release Rubeus
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -14,15 +17,30 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Restore
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore Packages
         run: nuget restore Rubeus.sln
 
       - name: Build
         run: msbuild Rubeus.sln /p:Configuration=Release /p:Platform="Any CPU"
 
-      - name: Upload
-        uses: actions/upload-artifact@v4
+      - name: Create Release Folder
+        run: |
+          mkdir release
+          copy Rubeus\bin\Release\Rubeus.exe release\Rubeus.exe
+
+      - name: Generate Tag
+        id: tag
+        shell: pwsh
+        run: |
+          $tag = "build-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: Rubeus
-          path: |
-            **/bin/Release/*.exe
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Rubeus Build ${{ steps.tag.outputs.tag }}
+          files: release/Rubeus.exe
