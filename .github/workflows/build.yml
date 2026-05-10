@@ -1,45 +1,28 @@
 name: Build Rubeus
 
 on:
-  push:
-    branches: [ "master", "main" ]
-  workflow_dispatch:  # Allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest  # Required: Rubeus targets .NET Framework (Windows only)
+    runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install .NET Framework 4.0 Reference Assemblies
-        shell: powershell
-        run: |
-          $refPath = "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.0"
-          if (-not (Test-Path $refPath)) {
-            New-Item -ItemType Directory -Force -Path $refPath | Out-Null
-          }
-          # Copy reference assemblies from the installed .NET 4.x runtime
-          $runtimePath = "C:\Windows\Microsoft.NET\Framework\v4.0.30319"
-          Get-ChildItem "$runtimePath\*.dll" | Copy-Item -Destination $refPath -Force
-          Write-Host "Reference assemblies copied to $refPath"
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
-
-      - name: Restore NuGet packages
+      - name: Restore
         run: nuget restore Rubeus.sln
 
-      - name: Build Rubeus (Release)
+      - name: Build
         run: msbuild Rubeus.sln /p:Configuration=Release /p:Platform="Any CPU"
 
-      - name: Upload compiled binary
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Rubeus-Release
-          path: Rubeus/bin/Release/Rubeus.exe
-          retention-days: 30
+          name: Rubeus
+          path: |
+            **/bin/Release/*.exe
